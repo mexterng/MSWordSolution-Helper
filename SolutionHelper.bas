@@ -61,6 +61,16 @@ Sub Changer(colorBool As Boolean)
     Call InitCustomColor
     ' colorBool = True:  WHITE -> customColor
     ' colorBool = False: customColor -> WHITE
+    Dim newColor, oldColor As Long
+    If ColorBool Then
+        newColor = CUSTOMCOLOR
+        oldColor = RGB(255, 255, 255)
+        Application.StatusBar = "Zeige Lösungen ..."
+    Else
+        newColor = RGB(255, 255, 255)
+        oldColor = CUSTOMCOLOR
+        Application.StatusBar = "Blende Lösungen aus ..."
+    End If
     
     DoEvents
     ActiveDocument.Bookmarks.Add _
@@ -69,13 +79,10 @@ Sub Changer(colorBool As Boolean)
     ActiveDocument.Select ' Select whole document
     Selection.Find.ClearFormatting
     Selection.Find.Replacement.ClearFormatting
-    If colorBool Then
-        Selection.Find.Font.COLOR = RGB(255, 255, 255)
-        Selection.Find.Replacement.Font.COLOR = CUSTOMCOLOR
-    Else
-        Selection.Find.Font.COLOR = CUSTOMCOLOR
-        Selection.Find.Replacement.Font.COLOR = RGB(255, 255, 255)
-    End If
+    
+    Selection.Find.Font.Color = oldColor
+    Selection.Find.Replacement.Font.Color = newColor
+    
     Selection.Find.Format = True
     Selection.Find.Execute Replace:=wdReplaceAll
     ' Replace textboxes
@@ -105,20 +112,27 @@ Sub Changer(colorBool As Boolean)
                 shape.line.Transparency = 1
             End If
         End If
+        
+        ' content
+        If Not (shape.TextFrame Is Nothing And shape.Type = msoTextBox) Then
+            If shape.TextFrame.HasText Then
+                With shape.TextFrame.textRange.Font
+                    If .COLOR = CUSTOMCOLOR Or .COLOR = shape.Fill.ForeColor.RGB Then
+                        If ColorBool Then
+                            .COLOR = CUSTOMCOLOR
+                        Else
+                            .COLOR = shape.Fill.ForeColor.RGB
+                        End If
+                    End If
+                End With
+            End If
+        End If
     Next shape
     
     ' Replace table lines
     Dim aTable As table
     Dim Row As Integer
     Dim column As Integer
-    Dim newColor, oldColor As Long
-    If colorBool Then
-        newColor = CUSTOMCOLOR
-        oldColor = RGB(255, 255, 255)
-    Else
-        newColor = RGB(255, 255, 255)
-        oldColor = CUSTOMCOLOR
-    End If
     
     For Each aTable In ActiveDocument.Tables
         For Row = 1 To aTable.Rows.Count
@@ -149,4 +163,5 @@ Sub Changer(colorBool As Boolean)
     ' Restore old cursor position
     ActiveDocument.Bookmarks("temp").Select
     ActiveDocument.Bookmarks("temp").delete
+    Application.StatusBar = ""
 End Sub
